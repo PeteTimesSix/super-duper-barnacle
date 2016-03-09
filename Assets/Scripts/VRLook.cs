@@ -135,13 +135,17 @@ public class VRLook
         
         Vector3 rotatedForward = ControllablesManager.Singleton.mainCameraActual.rotation *  Quaternion.Euler(-yBufferClamped * rayCastMult, xBufferClamped * rayCastMult, 0) * Vector3.forward;
         bool didHit = Physics.Raycast(ControllablesManager.Singleton.mainCameraActual.position, rotatedForward, out hit, 9999, raycastMask);
+        bool hitTargetOverride = false;
         if (didHit)
         {
             if (cursor3D != null)
                 cursor3D.transform.position = hit.point;
+
+            IInteractable interactable = hit.transform.gameObject.GetComponent<IInteractable>();
+            hitTargetOverride = interactable != null;
         }
 
-        if (timeSinceMovement > resetTime + hideAfterReset & hideAfterReset >= 0)
+        if (timeSinceMovement > resetTime + hideAfterReset & hideAfterReset >= 0 & !hitTargetOverride)
         {
             cursor3D.UpdateStatus(Cursor3D.State.Hidden);
             xBuffer = 0;
@@ -156,7 +160,16 @@ public class VRLook
             }
 
             if (xBufferClamped < 1 & yBufferClamped < 1 & xBufferClamped > -1 & yBufferClamped > -1)
-                cursor3D.UpdateStatus(cursor3D.currentState = Cursor3D.State.InZone);
+            {
+                if (didHit & hitTargetOverride)
+                {
+                    cursor3D.UpdateStatus(cursor3D.currentState = Cursor3D.State.InZoneOverActivable);
+                }
+                else
+                {
+                    cursor3D.UpdateStatus(cursor3D.currentState = Cursor3D.State.InZone);
+                }
+            }
             else
                 cursor3D.UpdateStatus(cursor3D.currentState = Cursor3D.State.OutZone);
         }
